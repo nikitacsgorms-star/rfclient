@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Объявления РФ — Платформа 89 регионов</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --glass: rgba(255, 255, 255, 0.85);
+        }
+
+        /* Полное скрытие полос прокрутки везде */
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            overflow-x: hidden;
+        }
+
+        .bg-blobs {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; overflow: hidden;
+        }
+        .blob {
+            position: absolute; filter: blur(100px); opacity: 0.3;
+            animation: move 25s infinite alternate ease-in-out;
+            will-change: transform;
+        }
+        .blob-1 { width: 600px; height: 600px; background: #3b82f6; top: -10%; left: -5%; }
+        .blob-2 { width: 700px; height: 700px; background: #ef4444; bottom: -15%; right: -5%; animation-duration: 35s; }
+
+        @keyframes move {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(80px, 120px) scale(1.1); }
+        }
+
+        .glass {
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-premium {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-premium:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); }
+
+        .modal-overlay {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .category-chip { transition: all 0.2s; cursor: pointer; border: 1px solid transparent; }
+        .category-chip.active { background: #1e293b; color: white; transform: scale(1.05); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .category-chip:not(.active):hover { background: white; border-color: #e2e8f0; transform: translateY(-1px); }
+
+        .form-category-grid .chip {
+            padding: 12px 16px;
+            border-radius: 16px;
+            background: #f1f5f9;
+            font-weight: 600;
+            font-size: 13px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .form-category-grid .chip.selected {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .pricing-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .pricing-card:hover { transform: translateY(-5px); border-color: #3b82f6; }
+        .pricing-card.active { border-color: #3b82f6; background: #eff6ff; ring: 4px; ring-color: #3b82f6/10; }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <!-- Header -->
+    <nav class="sticky top-0 z-50 px-4 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between glass rounded-[2.5rem] p-4 shadow-xl border border-white/40">
+            <div class="flex items-center space-x-3 ml-2">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-white font-black italic shadow-lg">РФ</div>
+                <span class="font-black text-xl tracking-tighter uppercase hidden sm:block">Объявления</span>
+            </div>
+            
+            <button onclick="openRegionSelector('filter')" class="flex flex-1 max-w-sm mx-4 items-center bg-white/60 hover:bg-white transition-colors rounded-2xl px-5 py-2.5 border border-slate-200/50 group">
+                <span class="text-[10px] font-black uppercase text-slate-400 mr-3 group-hover:text-blue-500 transition-colors">Локация:</span>
+                <span id="currentRegionLabel" class="text-sm font-bold text-slate-700 truncate">Вся Россия</span>
+                <svg class="w-4 h-4 ml-auto text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+            <button onclick="openModal('createPostModal')" class="btn-premium text-white text-xs sm:text-sm font-bold py-3 px-6 sm:px-8 rounded-2xl whitespace-nowrap mr-2">
+                + Подать объявление
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <header class="mb-8 text-center sm:text-left">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">Общая лента</h1>
+            <p class="text-slate-500 font-medium">Безопасная площадка для публикации объявлений по всей стране</p>
+        </header>
+
+        <div class="categories-container mb-10 overflow-hidden relative">
+            <div class="flex space-x-3 overflow-x-auto py-2 px-4 no-scrollbar scroll-smooth">
+                <div class="category-chip active px-6 py-3 rounded-2xl glass font-bold text-sm whitespace-nowrap shadow-sm" onclick="filterByCategory('all', this)">Все</div>
+                <div class="category-chip px-6 py-3 rounded-2xl glass font-bold text-sm whitespace-nowrap shadow-sm" onclick="filterByCategory('💼 Работа', this)">💼 Работа</div>
+                <div class="category-chip px-6 py-3 rounded-2xl glass font-bold text-sm whitespace-nowrap shadow-sm" onclick="filterByCategory('💻 Фриланс', this)">💻 Фриланс</div>
+                <div class="category-chip px-6 py-3 rounded-2xl glass font-bold text-sm whitespace-nowrap shadow-sm" onclick="filterByCategory('🏠 Аренда', this)">🏠 Аренда</div>
+                <div class="category-chip px-6 py-3 rounded-2xl glass font-bold text-sm whitespace-nowrap shadow-sm" onclick="filterByCategory('🏢 Продажа', this)">🏢 Продажа</div>
+                <div class="category-chip px-6 py-3 rounded-2xl glass font-bold text-sm whitespace-nowrap shadow-sm" onclick="filterByCategory('🚗 Авто', this)">🚗 Авто</div>
+                <div class="category-chip px-6 py-3 rounded-2xl glass font-bold text-sm whitespace-nowrap shadow-sm" onclick="filterByCategory('🛠 Услуги', this)">🛠 Услуги</div>
+                <div class="category-chip px-6 py-3 rounded-2xl glass font-bold text-sm whitespace-nowrap shadow-sm" onclick="filterByCategory('📱 Техника', this)">📱 Техника</div>
+                <div class="category-chip px-6 py-3 rounded-2xl glass font-bold text-sm whitespace-nowrap shadow-sm" onclick="filterByCategory('👕 Вещи', this)">👕 Вещи</div>
+            </div>
+        </div>
+
+        <div id="postsFeed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- JS Injection -->
+        </div>
+    </main>
+
+    <!-- MODAL: ПРОСМОТР ОБЪЯВЛЕНИЯ -->
+    <div id="viewPostModal" class="modal-overlay fixed inset-0 p-4 items-center justify-center">
+        <div class="glass w-full max-w-lg rounded-[3rem] p-8 sm:p-10 relative shadow-2xl overflow-y-auto max-h-[85vh] border border-white/60">
+            <button onclick="closeModal('viewPostModal')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-900 p-2">✕</button>
+            <div id="viewPostContent">
+                <!-- JS Injection -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ВЫБОР РЕГИОНА -->
+    <div id="regionSelectorModal" class="modal-overlay fixed inset-0 p-4 items-center justify-center" style="z-index: 2000;">
+        <div class="glass w-full max-w-xl rounded-[3rem] overflow-hidden flex flex-col shadow-2xl border border-white/60 max-h-[85vh]">
+            <div class="p-8 border-b border-slate-100 bg-white/40">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Выберите регион</h2>
+                    <button onclick="closeModal('regionSelectorModal')" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors text-slate-400">✕</button>
+                </div>
+                <div class="relative">
+                    <svg class="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="regionSearchInput" oninput="searchRegion()" placeholder="Поиск города или области..." class="w-full pl-14 pr-6 py-4 bg-white rounded-[1.5rem] outline-none border border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all font-semibold">
+                </div>
+            </div>
+            <div id="regionList" class="flex-1 overflow-y-auto p-4 space-y-1 bg-slate-50/30 no-scrollbar"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: СОЗДАНИЕ ОБЪЯВЛЕНИЯ -->
+    <div id="createPostModal" class="modal-overlay fixed inset-0 p-4 items-center justify-center">
+        <div class="glass w-full max-w-2xl rounded-[3rem] p-8 sm:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] border border-white/60 no-scrollbar">
+            <button onclick="closeModal('createPostModal')" class="absolute top-8 right-8 text-slate-400 hover:text-slate-900 transition-colors p-2">✕</button>
+            
+            <div id="formStep1">
+                <h2 class="text-3xl font-black mb-10 tracking-tight uppercase text-slate-800">Новое объявление</h2>
+                <div class="space-y-8">
+                    <div class="space-y-2">
+                        <label class="text-[11px] font-black uppercase text-slate-400 tracking-widest ml-1">Заголовок</label>
+                        <input id="form-title" type="text" placeholder="Название товара или услуги" class="w-full px-7 py-5 bg-white rounded-3xl outline-none font-bold border border-slate-100 shadow-sm focus:border-blue-400 transition-all">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-2">
+                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-widest ml-1">Местоположение</label>
+                            <button onclick="openRegionSelector('form')" class="w-full px-7 py-5 bg-white rounded-3xl outline-none font-bold text-sm border border-slate-100 shadow-sm flex items-center justify-between text-slate-700 hover:border-blue-300 transition-colors group">
+                                <span id="formRegionLabel">Выберите регион</span>
+                                <svg class="w-5 h-5 text-slate-300 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-widest ml-1">Контактные данные</label>
+                            <input id="form-contact" type="text" placeholder="TG @user, телефон или почта" class="w-full px-7 py-5 bg-white rounded-3xl outline-none font-bold border border-slate-100 shadow-sm focus:border-blue-400 transition-all">
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="text-[11px] font-black uppercase text-slate-400 tracking-widest ml-1">Категория</label>
+                        <div id="formCategoryGrid" class="form-category-grid grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div class="chip" onclick="selectFormCategory('💼 Работа', this)">💼 Работа</div>
+                            <div class="chip" onclick="selectFormCategory('💻 Фриланс', this)">💻 Фриланс</div>
+                            <div class="chip" onclick="selectFormCategory('🏠 Аренда', this)">🏠 Аренда</div>
+                            <div class="chip" onclick="selectFormCategory('🏢 Продажа', this)">🏢 Продажа</div>
+                            <div class="chip" onclick="selectFormCategory('🛠 Услуги', this)">🛠 Услуги</div>
+                            <div class="chip" onclick="selectFormCategory('📦 Разное', this)">📦 Разное</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[11px] font-black uppercase text-slate-400 tracking-widest ml-1">Описание и стоимость</label>
+                        <textarea id="form-desc" rows="3" placeholder="Подробности вашего предложения..." class="w-full px-7 py-5 bg-white rounded-3xl outline-none font-medium resize-none border border-slate-100 shadow-sm focus:border-blue-400 transition-all"></textarea>
+                    </div>
+                    
+                    <button onclick="goToPricing()" class="btn-premium w-full py-6 rounded-[2.5rem] font-black text-xl text-white mt-4 uppercase tracking-widest shadow-xl">
+                        К выбору тарифа
+                    </button>
+                </div>
+            </div>
+
+            <div id="formStep2" class="hidden">
+                <button onclick="backToForm()" class="mb-6 text-sm font-bold text-blue-500 flex items-center hover:opacity-70 transition-opacity">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    Назад к описанию
+                </button>
+                <h2 class="text-3xl font-black mb-2 tracking-tight uppercase text-slate-800">Выберите тариф</h2>
+                <div class="grid grid-cols-1 gap-4 mb-8">
+                    <div onclick="selectTariff('base')" class="pricing-card p-6 bg-white border-2 border-slate-100 rounded-3xl flex items-center justify-between group" id="tariff-base">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mr-5 font-bold text-xl italic">B</div>
+                            <div>
+                                <h3 class="font-black text-slate-800 uppercase">Базовый</h3>
+                                <p class="text-xs text-slate-400 font-bold">7 дней в ленте</p>
+                            </div>
+                        </div>
+                        <span class="text-2xl font-black text-slate-900">49₽</span>
+                    </div>
+                    <div onclick="selectTariff('standard')" class="pricing-card active p-6 bg-white border-2 border-blue-500 rounded-3xl flex items-center justify-between group" id="tariff-standard">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white mr-5 font-bold text-xl italic">S</div>
+                            <div>
+                                <h3 class="font-black text-slate-800 uppercase">Стандарт</h3>
+                                <p class="text-xs text-blue-500 font-bold">30 дней + Топ</p>
+                            </div>
+                        </div>
+                        <span class="text-2xl font-black text-slate-900">99₽</span>
+                    </div>
+                    <div onclick="selectTariff('premium')" class="pricing-card p-6 bg-white border-2 border-slate-100 rounded-3xl flex items-center justify-between group" id="tariff-premium">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 mr-5 font-bold text-xl italic">P</div>
+                            <div>
+                                <h3 class="font-black text-slate-800 uppercase">Премиум</h3>
+                                <p class="text-xs text-slate-400 font-bold">Безлимит + Закреп</p>
+                            </div>
+                        </div>
+                        <span class="text-2xl font-black text-slate-900">199₽</span>
+                    </div>
+                </div>
+                <button onclick="openPayment()" class="btn-premium w-full py-6 rounded-[2.5rem] font-black text-xl text-white uppercase tracking-widest shadow-xl">
+                    Опубликовать за <span id="finalPriceDisplay">99₽</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Payment Redirection -->
+    <div id="paymentModal" class="modal-overlay fixed inset-0 p-4 items-center justify-center">
+        <div class="glass w-full max-w-sm rounded-[3rem] p-12 text-center border border-white/60 shadow-2xl">
+            <div class="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] mx-auto flex items-center justify-center text-5xl mb-8 font-black italic">@</div>
+            <h2 class="text-2xl font-black mb-4 uppercase text-slate-800">Оплата в Bot</h2>
+            <p id="paymentDetails" class="text-slate-500 font-medium mb-10 text-sm leading-relaxed"></p>
+            <button id="payBtn" onclick="redirectToBot()" class="btn-premium w-full py-5 rounded-[2rem] font-black text-lg text-white uppercase tracking-widest">Открыть Telegram</button>
+            <button onclick="closeModal('paymentModal')" class="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Отмена</button>
+        </div>
+    </div>
+
+    <script>
+        const allRegions = ["Вся Россия", "Москва", "Санкт-Петербург", "Луганская Народная Республика", "Донецкая Народная Республика", "Запорожская область", "Херсонская область", "Краснодарский край", "Ростовская область", "Свердловская область"];
+        
+        let posts = [
+            { id: 1, title: 'Разработка сайта на React', category: '💻 Фриланс', region: 'Вся Россия', desc: 'Нужен современный лендинг для бизнеса. Бюджет 15.000р. Срок до недели.', contact: '@dev_boss', date: '2 мин' },
+            { id: 2, title: 'Сдам 2-к квартиру', category: '🏠 Аренда', region: 'Луганская Народная Республика', desc: 'Центр города, евроремонт, мебель и техника в наличии. 25.000р/мес.', contact: '+7 (959) 123-45-67', date: '15 мин' },
+            { id: 3, title: 'Продам студию 32м²', category: '🏢 Продажа', region: 'Краснодарский край', desc: 'Вид на море, документы готовы к сделке. Ипотека проходит. 4.5 млн р.', contact: 'https://avito.ru/item/123', date: '1 ч' },
+            { id: 4, title: 'Курьер на авто', category: '💼 Работа', region: 'Ростовская область', desc: 'Ежедневные выплаты. Гибкий график. Оплата ГСМ.', contact: '@job_rostov', date: '3 ч' }
+        ];
+
+        let state = {
+            region: "Вся Россия",
+            category: "all",
+            form: { region: "", category: "", tariff: "standard", price: 99 }
+        };
+
+        window.onload = () => {
+            renderRegions(allRegions);
+            renderPosts(posts);
+        };
+
+        function renderPosts(items) {
+            const feed = document.getElementById('postsFeed');
+            feed.innerHTML = items.length ? '' : '<div class="col-span-full text-center py-20 opacity-40 font-black text-slate-300">НИЧЕГО НЕ НАЙДЕНО</div>';
+            items.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'glass rounded-[2.5rem] p-7 hover:shadow-2xl transition-all duration-500 flex flex-col border border-white/40 group cursor-pointer';
+                el.onclick = (e) => { e.stopPropagation(); viewPost(p.id); };
+                el.innerHTML = `
+                    <div class="flex justify-between items-start mb-5">
+                        <span class="text-[9px] font-black uppercase px-3 py-1.5 bg-blue-500/10 text-blue-600 rounded-full border border-blue-500/10">${p.category}</span>
+                        <span class="text-[10px] font-bold text-slate-300">${p.date}</span>
+                    </div>
+                    <h3 class="text-xl font-extrabold text-slate-900 mb-3 leading-tight group-hover:text-blue-600 transition-colors">${p.title}</h3>
+                    <p class="text-sm text-slate-500 font-medium line-clamp-2 mb-6 flex-grow">${p.desc}</p>
+                    <div class="mt-auto pt-5 border-t border-slate-100/50 flex items-center justify-between">
+                        <div class="text-[10px] font-black text-slate-400 flex items-center bg-slate-100/50 px-2 py-1 rounded-lg">
+                            <span class="mr-1.5 text-xs">📍</span> ${p.region}
+                        </div>
+                        <button class="text-blue-500 font-black text-[10px] uppercase tracking-widest group-hover:translate-x-1 transition-transform">Связь →</button>
+                    </div>
+                `;
+                feed.appendChild(el);
+            });
+        }
+
+        function viewPost(id) {
+            const post = posts.find(p => p.id === id);
+            if (!post) return;
+            const container = document.getElementById('viewPostContent');
+            container.innerHTML = `
+                <div class="mb-6">
+                    <span class="text-[10px] font-black uppercase px-3 py-1.5 bg-blue-500/10 text-blue-600 rounded-full border border-blue-500/10">${post.category}</span>
+                </div>
+                <h2 class="text-3xl font-black text-slate-900 mb-6 leading-tight">${post.title}</h2>
+                <div class="p-6 bg-slate-50 rounded-3xl mb-8 border border-slate-100">
+                    <p class="text-slate-600 font-medium leading-relaxed mb-4">${post.desc}</p>
+                    <div class="flex items-center text-xs font-bold text-slate-400">
+                        <span class="mr-4">📍 ${post.region}</span>
+                        <span>🕒 Опубликовано ${post.date} назад</span>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <label class="text-[11px] font-black uppercase text-slate-400 tracking-widest ml-1">Контакты для связи</label>
+                    <div class="w-full px-7 py-5 bg-white rounded-3xl font-black text-blue-600 border border-slate-100 shadow-sm flex items-center justify-between overflow-hidden">
+                        <span class="truncate">${post.contact}</span>
+                        <button onclick="copyToClipboard('${post.contact}')" class="ml-4 text-[10px] text-slate-400 hover:text-blue-500 transition-colors uppercase">Копировать</button>
+                    </div>
+                </div>
+            `;
+            openModal('viewPostModal');
+        }
+
+        function copyToClipboard(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert('Скопировано в буфер обмена!');
+        }
+
+        function selectFormCategory(cat, el) {
+            document.querySelectorAll('.form-category-grid .chip').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            state.form.category = cat;
+        }
+
+        function openRegionSelector(target) {
+            currentRegionTarget = target;
+            openModal('regionSelectorModal');
+        }
+
+        function selectRegion(name) {
+            if (currentRegionTarget === 'filter') {
+                state.region = name;
+                document.getElementById('currentRegionLabel').innerText = name;
+                applyFilters();
+            } else {
+                state.form.region = name;
+                document.getElementById('formRegionLabel').innerText = name;
+            }
+            closeModal('regionSelectorModal');
+        }
+
+        function renderRegions(list) {
+            const container = document.getElementById('regionList');
+            container.innerHTML = '';
+            list.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'px-6 py-4 rounded-2xl cursor-pointer font-bold text-slate-700 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all';
+                div.innerHTML = `<span>${r}</span> <span class="text-blue-500 opacity-0 group-hover:opacity-100">→</span>`;
+                div.onclick = () => selectRegion(r);
+                container.appendChild(div);
+            });
+        }
+
+        function searchRegion() {
+            const query = document.getElementById('regionSearchInput').value.toLowerCase();
+            const filtered = allRegions.filter(r => r.toLowerCase().includes(query));
+            renderRegions(filtered);
+        }
+
+        function filterByCategory(cat, btn) {
+            document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            state.category = cat;
+            applyFilters();
+        }
+
+        function applyFilters() {
+            let filtered = posts;
+            if (state.region !== "Вся Россия") filtered = filtered.filter(p => p.region === state.region);
+            if (state.category !== "all") filtered = filtered.filter(p => p.category === state.category);
+            renderPosts(filtered);
+        }
+
+        function goToPricing() {
+            const title = document.getElementById('form-title').value;
+            const desc = document.getElementById('form-desc').value;
+            const contact = document.getElementById('form-contact').value;
+            if (!title || !desc || !contact || !state.form.region || !state.form.category) {
+                alert("Заполните все поля, включая регион и категорию."); return;
+            }
+            document.getElementById('formStep1').classList.add('hidden');
+            document.getElementById('formStep2').classList.remove('hidden');
+        }
+
+        function backToForm() {
+            document.getElementById('formStep2').classList.add('hidden');
+            document.getElementById('formStep1').classList.remove('hidden');
+        }
+
+        function selectTariff(type) {
+            state.form.tariff = type;
+            document.querySelectorAll('.pricing-card').forEach(c => c.classList.remove('active', 'border-blue-500'));
+            const card = document.getElementById(`tariff-${type}`);
+            card.classList.add('active', 'border-blue-500');
+            const prices = { base: 49, standard: 99, premium: 199 };
+            state.form.price = prices[type];
+            document.getElementById('finalPriceDisplay').innerText = state.form.price + '₽';
+        }
+
+        function openPayment() {
+            document.getElementById('paymentDetails').innerText = `Вы выбрали тариф ${state.form.tariff.toUpperCase()} за ${state.form.price}₽. Перейдите в Telegram для оплаты.`;
+            closeModal('createPostModal');
+            openModal('paymentModal');
+        }
+
+        function redirectToBot() {
+            document.getElementById('payBtn').innerHTML = '<div class="loader mx-auto"></div>';
+            setTimeout(() => window.location.href = "https://t.me/rabota_lnrbot", 1000);
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    </script>
+</body>
+</html>
