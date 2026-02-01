@@ -6,7 +6,6 @@
     <title>Объявления РФ — Платформа 89 регионов</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
     <style>
         :root {
             --primary: #3b82f6;
@@ -155,10 +154,7 @@
         </div>
 
         <div id="postsFeed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Загрузка из базы -->
-            <div class="col-span-full flex justify-center py-20">
-                <div class="loader"></div>
-            </div>
+            <!-- JS Injection -->
         </div>
     </main>
 
@@ -166,7 +162,9 @@
     <div id="viewPostModal" class="modal-overlay fixed inset-0 p-4 items-center justify-center">
         <div class="glass w-full max-w-lg rounded-[3rem] p-8 sm:p-10 relative shadow-2xl overflow-y-auto max-h-[85vh] border border-white/60">
             <button onclick="closeModal('viewPostModal')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-900 p-2">✕</button>
-            <div id="viewPostContent"></div>
+            <div id="viewPostContent">
+                <!-- JS Injection -->
+            </div>
         </div>
     </div>
 
@@ -252,7 +250,7 @@
                             <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mr-5 font-bold text-xl italic">B</div>
                             <div>
                                 <h3 class="font-black text-slate-800 uppercase">Базовый</h3>
-                                <p class="text-xs text-slate-400 font-bold">29 ⭐ / 49₽</p>
+                                <p class="text-xs text-slate-400 font-bold">7 дней в ленте</p>
                             </div>
                         </div>
                         <span class="text-2xl font-black text-slate-900">49₽</span>
@@ -262,7 +260,7 @@
                             <div class="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white mr-5 font-bold text-xl italic">S</div>
                             <div>
                                 <h3 class="font-black text-slate-800 uppercase">Стандарт</h3>
-                                <p class="text-xs text-blue-500 font-bold">69 ⭐ / 99₽</p>
+                                <p class="text-xs text-blue-500 font-bold">30 дней + Топ</p>
                             </div>
                         </div>
                         <span class="text-2xl font-black text-slate-900">99₽</span>
@@ -272,131 +270,68 @@
                             <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 mr-5 font-bold text-xl italic">P</div>
                             <div>
                                 <h3 class="font-black text-slate-800 uppercase">Премиум</h3>
-                                <p class="text-xs text-slate-400 font-bold">129 ⭐ / 199₽</p>
+                                <p class="text-xs text-slate-400 font-bold">Безлимит + Закреп</p>
                             </div>
                         </div>
                         <span class="text-2xl font-black text-slate-900">199₽</span>
                     </div>
                 </div>
-                <button onclick="saveToDbAndRedirect()" class="btn-premium w-full py-6 rounded-[2.5rem] font-black text-xl text-white uppercase tracking-widest shadow-xl">
+                <button onclick="openPayment()" class="btn-premium w-full py-6 rounded-[2.5rem] font-black text-xl text-white uppercase tracking-widest shadow-xl">
                     Опубликовать за <span id="finalPriceDisplay">99₽</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Modal: Payment Redirect Loader -->
-    <div id="loaderModal" class="modal-overlay fixed inset-0 p-4 items-center justify-center">
+    <!-- Modal: Payment Redirection -->
+    <div id="paymentModal" class="modal-overlay fixed inset-0 p-4 items-center justify-center">
         <div class="glass w-full max-w-sm rounded-[3rem] p-12 text-center border border-white/60 shadow-2xl">
-            <div class="loader mx-auto mb-6"></div>
-            <h2 class="text-xl font-black mb-2 uppercase text-slate-800">Создаем заказ...</h2>
-            <p class="text-slate-500 text-sm">Сейчас мы перенаправим вас в Telegram бота для оплаты</p>
+            <div class="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] mx-auto flex items-center justify-center text-5xl mb-8 font-black italic">@</div>
+            <h2 class="text-2xl font-black mb-4 uppercase text-slate-800">Оплата в Bot</h2>
+            <p id="paymentDetails" class="text-slate-500 font-medium mb-10 text-sm leading-relaxed"></p>
+            <button id="payBtn" onclick="redirectToBot()" class="btn-premium w-full py-5 rounded-[2rem] font-black text-lg text-white uppercase tracking-widest">Открыть Telegram</button>
+            <button onclick="closeModal('paymentModal')" class="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Отмена</button>
         </div>
     </div>
 
     <script>
-        const allRegions = ["Вся Россия", "Москва", "Санкт-Петербург", "Севастополь",
+        const allRegions = ["Вся Россия", 
+            "Москва", "Санкт-Петербург", "Севастополь",
             "Луганская Народная Республика", "Донецкая Народная Республика", "Запорожская область", "Херсонская область",
             "Адыгея", "Алтай", "Башкортостан", "Бурятия", "Дагестан", "Ингушетия", "Кабардино-Балкария", "Калмыкия", "Карачаево-Черкесия", "Карелия", "Коми", "Крым", "Марий Эл", "Мордовия", "Саха (Якутия)", "Северная Осетия", "Татарстан", "Тыва", "Удмуртия", "Хакасия", "Чечня", "Чувашия",
             "Алтайский край", "Забайкальский край", "Камчатский край", "Краснодарский край", "Красноярский край", "Пермский край", "Приморский край", "Ставропольский край", "Хабаровский край",
             "Амурская область", "Архангельская область", "Астраханская область", "Белгородская область", "Брянская область", "Владимирская область", "Волгоградская область", "Вологодская область", "Воронежская область", "Ивановская область", "Иркутская область", "Калининградская область", "Калужская область", "Кемеровская область", "Кировская область", "Костромская область", "Курганская область", "Курская область", "Ленинградская область", "Липецкая область", "Магаданская область", "Московская область", "Мурманская область", "Нижегородская область", "Новгородская область", "Новосибирская область", "Омская область", "Оренбургская область", "Орловская область", "Пензенская область", "Псковская область", "Ростовская область", "Рязанская область", "Самарская область", "Саратовская область", "Сахалинская область", "Свердловская область", "Смоленская область", "Тамбовская область", "Тверская область", "Томская область", "Тульская область", "Тюменская область", "Ульяновская область", "Челябинская область", "Ярославская область",
             "Еврейская АО", "Ненецкий АО", "Ханты-Мансийский АО", "Чукотский АО", "Ямало-Ненецкий АО"];
         
-        let allPosts = [];
+        let posts = [
+            { id: 1, title: 'Разработка сайта на React', category: '💻 Фриланс', region: 'Вся Россия', desc: 'Нужен современный лендинг для бизнеса. Бюджет 15.000р. Срок до недели.', contact: '@dev_boss', date: '2 мин' },
+            { id: 2, title: 'Сдам 2-к квартиру', category: '🏠 Аренда', region: 'Луганская Народная Республика', desc: 'Центр города, евроремонт, мебель и техника в наличии. 25.000р/мес.', contact: '+7 (959) 123-45-67', date: '15 мин' },
+            { id: 3, title: 'Продам студию 32м²', category: '🏢 Продажа', region: 'Краснодарский край', desc: 'Вид на море, документы готовы к сделке. Ипотека проходит. 4.5 млн р.', contact: 'https://avito.ru/item/123', date: '1 ч' },
+            { id: 4, title: 'Курьер на авто', category: '💼 Работа', region: 'Ростовская область', desc: 'Ежедневные выплаты. Гибкий график. Оплата ГСМ.', contact: '@job_rostov', date: '3 ч' }
+        ];
 
         let state = {
             region: "Вся Россия",
             category: "all",
-            form: { region: "", category: "", tariff: "standard", price: 99, stars: 69 }
+            form: { region: "", category: "", tariff: "standard", price: 99 }
         };
 
         window.onload = () => {
             renderRegions(allRegions);
-            loadAds(); // Загружаем объявления при старте
+            renderPosts(posts);
         };
-
-        // --- ЛОГИКА API ---
-
-        async function loadAds() {
-            try {
-                const response = await fetch('/api/ads');
-                if (!response.ok) throw new Error('Ошибка сети');
-                allPosts = await response.json();
-                applyFilters();
-            } catch (e) {
-                console.error("Ошибка загрузки объявлений:", e);
-                document.getElementById('postsFeed').innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">Пока нет объявлений или сервер недоступен.</div>';
-            }
-        }
-
-        async function saveToDbAndRedirect() {
-            const title = document.getElementById('form-title').value;
-            const desc = document.getElementById('form-desc').value;
-            const contact = document.getElementById('form-contact').value;
-            
-            openModal('loaderModal');
-
-            try {
-                // 1. Отправляем данные на наш сервер
-                const response = await fetch('/api/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: title,
-                        desc: desc,
-                        contact: contact,
-                        region: state.form.region,
-                        category: state.form.category,
-                        tariff: state.form.tariff,
-                        priceRub: state.form.price,
-                        priceStars: state.form.stars
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.status === 'ok') {
-                    // 2. Формируем ссылку на бота с ID
-                    const botLink = `https://t.me/RUSSIAMAIN_bot?start=${result.id}`;
-                    
-                    // 3. Перенаправляем
-                    setTimeout(() => {
-                        window.location.href = botLink;
-                    }, 1500);
-                } else {
-                    alert('Ошибка сервера: ' + result.message);
-                    closeModal('loaderModal');
-                }
-
-            } catch (e) {
-                console.error("Error creating ad: ", e);
-                closeModal('loaderModal');
-                alert("Ошибка соединения с сервером. Убедитесь, что bot.py запущен.");
-            }
-        }
-
-        // --- UI ФУНКЦИИ ---
 
         function renderPosts(items) {
             const feed = document.getElementById('postsFeed');
             feed.innerHTML = items.length ? '' : '<div class="col-span-full text-center py-20 opacity-40 font-black text-slate-300">НИЧЕГО НЕ НАЙДЕНО</div>';
-            
             items.forEach(p => {
-                const isPremium = p.tariff === 'premium';
-                const borderClass = isPremium ? 'border-orange-300 shadow-orange-100' : 'border-white/40';
-                const bgClass = isPremium ? 'bg-orange-50/30' : 'glass';
-                
                 const el = document.createElement('div');
-                el.className = `${bgClass} rounded-[2.5rem] p-7 hover:shadow-2xl transition-all duration-500 flex flex-col border ${borderClass} group cursor-pointer relative overflow-hidden`;
-                el.onclick = (e) => { e.stopPropagation(); viewPost(p); };
-                
-                let premiumBadge = isPremium ? '<div class="absolute top-0 right-0 bg-orange-400 text-white text-[9px] font-black uppercase px-3 py-1 rounded-bl-xl">Premium</div>' : '';
-
+                el.className = 'glass rounded-[2.5rem] p-7 hover:shadow-2xl transition-all duration-500 flex flex-col border border-white/40 group cursor-pointer';
+                el.onclick = (e) => { e.stopPropagation(); viewPost(p.id); };
                 el.innerHTML = `
-                    ${premiumBadge}
-                    <div class="flex justify-between items-start mb-5 mt-2">
+                    <div class="flex justify-between items-start mb-5">
                         <span class="text-[9px] font-black uppercase px-3 py-1.5 bg-blue-500/10 text-blue-600 rounded-full border border-blue-500/10">${p.category}</span>
-                        <span class="text-[10px] font-bold text-slate-300">Недавно</span>
+                        <span class="text-[10px] font-bold text-slate-300">${p.date}</span>
                     </div>
                     <h3 class="text-xl font-extrabold text-slate-900 mb-3 leading-tight group-hover:text-blue-600 transition-colors">${p.title}</h3>
                     <p class="text-sm text-slate-500 font-medium line-clamp-2 mb-6 flex-grow">${p.desc}</p>
@@ -411,7 +346,9 @@
             });
         }
 
-        function viewPost(post) {
+        function viewPost(id) {
+            const post = posts.find(p => p.id === id);
+            if (!post) return;
             const container = document.getElementById('viewPostContent');
             container.innerHTML = `
                 <div class="mb-6">
@@ -422,7 +359,7 @@
                     <p class="text-slate-600 font-medium leading-relaxed mb-4">${post.desc}</p>
                     <div class="flex items-center text-xs font-bold text-slate-400">
                         <span class="mr-4">📍 ${post.region}</span>
-                        <span>🕒 Недавно</span>
+                        <span>🕒 Опубликовано ${post.date} назад</span>
                     </div>
                 </div>
                 <div class="space-y-3">
@@ -437,11 +374,13 @@
         }
 
         function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Скопировано в буфер обмена!');
-            }).catch(err => {
-                console.error('Ошибка копирования: ', err);
-            });
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert('Скопировано в буфер обмена!');
         }
 
         function selectFormCategory(cat, el) {
@@ -451,12 +390,12 @@
         }
 
         function openRegionSelector(target) {
-            window.currentRegionTarget = target;
+            currentRegionTarget = target;
             openModal('regionSelectorModal');
         }
 
         function selectRegion(name) {
-            if (window.currentRegionTarget === 'filter') {
+            if (currentRegionTarget === 'filter') {
                 state.region = name;
                 document.getElementById('currentRegionLabel').innerText = name;
                 applyFilters();
@@ -493,7 +432,7 @@
         }
 
         function applyFilters() {
-            let filtered = allPosts;
+            let filtered = posts;
             if (state.region !== "Вся Россия") filtered = filtered.filter(p => p.region === state.region);
             if (state.category !== "all") filtered = filtered.filter(p => p.category === state.category);
             renderPosts(filtered);
@@ -520,17 +459,20 @@
             document.querySelectorAll('.pricing-card').forEach(c => c.classList.remove('active', 'border-blue-500'));
             const card = document.getElementById(`tariff-${type}`);
             card.classList.add('active', 'border-blue-500');
-            
-            // Настройка цен (Рубли / Звезды)
-            const prices = { 
-                base: { rub: 49, stars: 29 }, 
-                standard: { rub: 99, stars: 69 }, 
-                premium: { rub: 199, stars: 129 } 
-            };
-            
-            state.form.price = prices[type].rub;
-            state.form.stars = prices[type].stars;
+            const prices = { base: 49, standard: 99, premium: 199 };
+            state.form.price = prices[type];
             document.getElementById('finalPriceDisplay').innerText = state.form.price + '₽';
+        }
+
+        function openPayment() {
+            document.getElementById('paymentDetails').innerText = `Вы выбрали тариф ${state.form.tariff.toUpperCase()} за ${state.form.price}₽. Перейдите в Telegram для оплаты.`;
+            closeModal('createPostModal');
+            openModal('paymentModal');
+        }
+
+        function redirectToBot() {
+            document.getElementById('payBtn').innerHTML = '<div class="loader mx-auto"></div>';
+            setTimeout(() => window.location.href = "https://t.me/RUSSIAMAIN_bot", 1000);
         }
 
         function openModal(id) { document.getElementById(id).classList.add('active'); }
